@@ -3,7 +3,7 @@ sudo: required
 language: ruby
 
 env:
-  - PROJECT_ID="mysocialapp" CASSANDRA_VERSION="3.11.3" VERSION=${CASSANDRA_VERSION}-1 CASSANDRA_SHA="d82e0670cb41b091e88fff55250ce945c4ea026c87a5517d3cf7b6b351d5e2ba" DEV_CONTAINER=yes
+  - PROJECT_ID="mysocialapp" CASSANDRA_VERSION="3.0.9" VERSION=${CASSANDRA_VERSION} CASSANDRA_SHA="d82e0670cb41b091e88fff55250ce945c4ea026c87a5517d3cf7b6b351d5e2ba" DEV_CONTAINER=yes
 
 services:
   - docker
@@ -23,13 +23,12 @@ script:
   - cd docker-cassandra-k8s && make docker && cd ..
   - echo "[+] Building Cassandra backup image"
   - sed -i "s/IMAGE_FROM_VERSION/${VERSION}/g" Dockerfile
-  - docker build -t quay.io/${PROJECT_ID}/cassandra-backup:${VERSION} .
+  - docker build -t $DOCKERHUB_USERNAME/cassandra:${VERSION} .
 
 after_success:
-  - test $(curl -s https://quay.io/api/v1/repository/$PROJECT_ID/cassandra/tag/ | jq ".tags[] | select(.name == \"$VERSION\") | select(.end_ts == null) | .name" | wc -l) -eq 0 || echo "Container tag $VERSION already exist, cancelling push to avoid override"
-  - docker login -u="$QUAY_USERNAME" -p="$QUAY_PASSWORD" quay.io
+  - docker login -u="$DOCKERHUB_USERNAME" -p="$DOCKERHUB_PASSWORD" quay.io
   - echo "Pushing Cassandra image"
   - cd docker-cassandra-k8s && make push && cd ..
   - echo "Pushing Cassandra backup image"
-  - docker push quay.io/${PROJECT_ID}/cassandra-backup:${VERSION}
+  - docker push $DOCKERHUB_USERNAME/cassandra:${VERSION}
 
